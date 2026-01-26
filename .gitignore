@@ -84,7 +84,6 @@ ipython_config.py
 
 # data files
 *.csv
-*.txt
 *.parquet
 
 
