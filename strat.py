@@ -16,7 +16,10 @@ def wrangle_data(df: pd.DataFrame) -> pd.DataFrame:
 
     return df
 
-def add_signals(df : pd.DataFrame, short_win : int = 50, long_win : int = 200) -> pd.DataFrame :
+def add_signals(df : pd.DataFrame, 
+                short_win : int = 50, 
+                long_win : int = 200,
+                strat : str = "mavg") -> pd.DataFrame :
     """
     Add trading signals to the DataFrame based on moving averages.
 
@@ -28,14 +31,49 @@ def add_signals(df : pd.DataFrame, short_win : int = 50, long_win : int = 200) -
     Returns:
     pd.DataFrame: DataFrame with added trading signals.
     """
-    df = df.copy()
-    df['short_ma'] = df['Close'].rolling(short_win).mean()
-    df['long_ma'] = df['Close'].rolling(long_win).mean()
-    df['signal'] = 0
-    df.loc[df['short_ma'] > df['long_ma'], 'signal'] = 1
-    df.loc[df['short_ma'] < df['long_ma'], 'signal'] = -1
-    df['pos'] = df['signal'].shift(1).fillna(0)
-    return df
+    if strat == "mavg":
+        df = df.copy()
+        df['short_ma'] = df['Close'].rolling(short_win).mean()
+        df['long_ma'] = df['Close'].rolling(long_win).mean()
+        df['signal'] = 0
+        df.loc[df['short_ma'] > df['long_ma'], 'signal'] = 1
+        df.loc[df['short_ma'] < df['long_ma'], 'signal'] = -1
+        df['pos'] = df['signal'].shift(1).fillna(0)
+        return df
+
+    if strat == "rsi":
+        df = df.copy()
+        df['rsi'] = rsi_pandas_vect(df['Close'])
+        df['signal'] = 0
+        df.loc[df['rsi'] < 30, 'signal'] = 1
+        df.loc[df['rsi'] > 70, 'signal'] = -1
+        df['pos'] = df['signal'].shift(1).fillna(0)
+        return df
+
+def rsi_pandas_vect(close : pd.Series,
+                    period : int = 14,
+                    # fillna : bool = False,
+                   ) -> pd.Series:
+    """
+    Vectorized RSI with Wilder's smoothing
+    """
+    delta = close.diff()
+    gain = delta.where(delta > 0, 0.0)
+    loss = -delta.where(delta< 0, 0.0)
+    avg_gain = gain.rolling(window = period, min_periods = period).mean()
+    avg_loss = loss.rolling(window = period, min_periods = period).mean()
+    #EMA smoothing
+    avg_gain = avg_gain.where(
+        avg_gain.isna(),
+        gain.ewm(com = period - 1, min_periods = period, adjust = False).mean()
+    )
+    avg_loss = avg_loss.where(
+        avg_loss.isna(),
+        loss.ewm(com = period - 1, min_periods = period, adjust = False).mean()
+    )
+    rs = avg_gain /avg_loss
+    rsi = 100.0 - (100.0 / (1.0 + rs))
+    return rsi
 
 
 def find_returns(df: pd.DataFrame) -> pd.DataFrame:
