@@ -19,6 +19,9 @@ def wrangle_data(df: pd.DataFrame) -> pd.DataFrame:
 def add_signals(df : pd.DataFrame, 
                 short_win : int = 50, 
                 long_win : int = 200,
+                rsi_period : int = 14,
+                rsi_buy : int = 30,
+                rsi_sell : int = 70,
                 strat : str = "mavg") -> pd.DataFrame :
     """
     Add trading signals to the DataFrame based on moving averages.
@@ -43,10 +46,10 @@ def add_signals(df : pd.DataFrame,
 
     if strat == "rsi":
         df = df.copy()
-        df['rsi'] = rsi_pandas_vect(df['Close'])
+        df['rsi'] = rsi_pandas_vect(df['Close'], period=rsi_period)
         df['signal'] = 0
-        df.loc[df['rsi'] < 30, 'signal'] = 1
-        df.loc[df['rsi'] > 70, 'signal'] = -1
+        df.loc[df['rsi'] < rsi_buy, 'signal'] = 1
+        df.loc[df['rsi'] > rsi_sell, 'signal'] = -1
         df['pos'] = df['signal'].shift(1).fillna(0)
         return df
 
