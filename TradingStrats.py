@@ -15,18 +15,50 @@ class TradingStrategy():
         Main method: takes long-format df and returns df with at least 'signal' 
         and 'pos' columns added.
         """
-        df['signals'] = 0
-        df['pos'] = 0
-        return df
+        pass
 
     def compute_returns(self, df: pd.DataFrame) -> pd.DataFrame:
         """
-        Computes return - same for all strategies.
+        Computes per-stock returns + strategy returns, then adds equal-weighted portfolio cumulative.
+        Assumes df has 'Close', 'pos' (from signals), and 'Ticker' column.
         """
         df = df.copy()
-        df['returns'] = df['Close'].pct_change()
+    
+        df['returns'] = df.groupby('Ticker')['Close'].pct_change()
         df['strat_rtn'] = df['pos'] * df['returns']
-        df['cumulative_rtn'] = (1+ df['strat_rtn']).cumprod()
+    
+        # 3. Per-stock cumulative strategy return (optional, but useful for comparison)
+        df['cumulative_rtn'] = (
+            (1 + df['strat_rtn'])
+            .groupby(df['Ticker'])
+            .cumprod()
+            .fillna(1)
+            )
+        
+        # 4. Portfolio-level: equal-weighted average daily strat return per date
+        #    (this is the key step for combined portfolio)
+        port_daily_ret = (
+            df.pivot_table(
+                index='Date',
+                columns='Ticker',
+                values='strat_rtn',
+                aggfunc='mean'          # equal weight = average across stocks
+            )
+            .mean(axis=1)               # final portfolio daily return
+            .rename('portfolio_daily_ret')
+        )
+    
+        # 5. Portfolio cumulative return (starts at 1)
+        port_cum = (1 + port_daily_ret).cumprod().rename('port_cumulative_rtn')
+    
+        # 6. Merge portfolio cumulative back into the long df (broadcast per date)
+        df = df.merge(
+            port_cum.to_frame(),
+            left_on='Date',
+            right_index=True,
+            how='left'
+        )
+    
         return df
 
     def run(self, df: pd.DataFrame) -> pd.DataFrame:
