@@ -1,7 +1,9 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-from strat import wrangle_data, add_signals_per_stock, find_returns
+from TradingStrats import STRATEGY_REGISTRY, get_strategy
+from WrangleData import wrangle_data
+# from strat import wrangle_data, add_signals_per_stock, find_returns
 
 st.write("MAG 7 - strategy backtester")
 
@@ -10,7 +12,7 @@ with st.container(border=True):
     selected_stocks = st.multiselect("Stocks", all_stocks, default=all_stocks)
     portfolio_return = st.toggle("portfolio_return")
     
-all_strats = ["Simple MA Crossover", "RSI Oversold/Overbought", "Buy & Hold (Benchmark)", "Momentum (ROC)"]
+all_strats = ["buy_and_hold", "mavg", "rsi", "momentum"]
 with st.container(border=True):
     strat = st.selectbox("Strategy", all_strats, index=0)
     if strat == "Simple MA Crossover":
@@ -28,14 +30,13 @@ with st.container(border=True):
 
     
 df = wrangle_data(selected_stocks)
-df = add_signals_per_stock(df, selected_stocks)
-
-
-
+my_strat = get_strategy(strat)
+strat_df = my_strat.run(df)
+port_series = strat_df.drop_duplicates(subset='Date').set_index('Date')['port_cumulative_rtn']
 
 tab1, tab2 = st.tabs(["Chart", "Dataframe"])
 if portfolio_return:
-    tab1.line_chart(df['port_cumulative_rtn'], height=250)
+    tab1.line_chart(port_series, height=250)
 else:
     tab1.line_chart(df['Close'], height=250)
 

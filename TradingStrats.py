@@ -158,6 +158,21 @@ class TimeSeriesMomentum(TradingStrategy):
 
     def compute_signals(self, df: pd.DataFrame) -> pd.DataFrame:
         df['momentum'] = df.groupby('Ticker')['Close'].pct_change(periods = self.lookback)
-        df['signal'] = np.where(['momentum'] > self.threshold, 1, 0)
+        df['signal'] = np.where(df['momentum'] > self.threshold, 1, 0)
         df['pos'] = df.groupby('Ticker')['signal'].shift(1).fillna(0)
         return df
+    
+STRATEGY_REGISTRY = {
+    "buy_and_hold": BuyAndHold,
+    "mavg": MovingAverageCrossover,
+    "rsi": RSIMeanReversion,
+    "momentum": TimeSeriesMomentum,
+    # add more here later
+}
+
+def get_strategy(name: str, **params) -> TradingStrategy:
+    "Factory function for clean entry point from Streamlit"
+    strategy_class = STRATEGY_REGISTRY.get(name)
+    if not strategy_class:
+        raise ValueError("Unknown straategy: {name}")
+    return strategy_class(**params)
