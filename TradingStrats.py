@@ -15,7 +15,9 @@ class TradingStrategy():
         Main method: takes long-format df and returns df with at least 'signal' 
         and 'pos' columns added.
         """
-        pass
+        df['signal'] = 0
+        df['pos'] = 0
+        return df
 
     def compute_returns(self, df: pd.DataFrame) -> pd.DataFrame:
         """
