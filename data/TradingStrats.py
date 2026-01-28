@@ -15,13 +15,16 @@ class TradingStrategy():
         Main method: takes long-format df and returns df with at least 'signal' 
         and 'pos' columns added.
         """
-        pass
+        df['signals'] = 0
+        df['pos'] = 0
+        return df
 
     def compute_returns(self, df: pd.DataFrame) -> pd.DataFrame:
         """
         Computes return - same for all strategies.
         """
         df = df.copy()
+        df['returns'] = df['Close'].pct_change()
         df['strat_rtn'] = df['pos'] * df['returns']
         df['cumulative_rtn'] = (1+ df['strat_rtn']).cumprod()
         return df
@@ -30,7 +33,7 @@ class TradingStrategy():
         """
         Combines signals and returns in chain.
         """
-        df = df.self.compute_signals(df)
+        df = self.compute_signals(df)
         return self.compute_returns(df)
     
 class BuyAndHold(TradingStrategy):
