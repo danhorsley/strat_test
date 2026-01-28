@@ -33,7 +33,7 @@ class TradingStrategy():
         df = df.self.compute_signals(df)
         return self.compute_returns(df)
     
-    class BuyAndHold(TradingStrategy):
+class BuyAndHold(TradingStrategy):
     name = "Buy & Hold"
     description = "Passive benchmark - always long"
 
@@ -41,13 +41,13 @@ class TradingStrategy():
         df['signal'] = 1
         df['pos'] = 1
         return df
-
+    
 class MovingAverageCrossover(TradingStrategy):
     name = "MA Crossover"
     description = "Classic trend-following : Long when shorter MA is above longer MA and vice-versa."
 
-    def __init__(self, short_win: int=50, long_win int = 200, **kwargs)):
-        super().__init(**kwargs)
+    def __init__(self, short_win: int=50, long_win: int = 200, **kwargs):
+        super().__init__(**kwargs)
         self.short_win = short_win
         self.long_win = long_win
 
@@ -80,8 +80,8 @@ class RSIMeanReversion(TradingStrategy):
     name = "RSI Oversold/Overbought"
     description = "Classic mean-reversion"
 
-    def __init__(self, period: int = 14, buy_level: int = 30, sell_level: int=70, **kwargs)
-        super().__init(**kwargs)
+    def __init__(self, period: int = 14, buy_level: int = 30, sell_level: int=70, **kwargs):
+        super().__init__(**kwargs)
         self.period = period
         self.buy_level = buy_level
         self.sell_level = sell_level
@@ -90,16 +90,16 @@ class RSIMeanReversion(TradingStrategy):
         delta = df.groupby('Ticker')['Close'].diff()
         gain = delta.where(delta > 0, 0.0)
         loss = -delta.where(delta< 0, 0.0)
-        avg_gain = gain.rolling(window = self.period, min_periods = self.period).mean()
-        avg_loss = loss.rolling(window = self.period, min_periods = self.period).mean()
+        avg_gain = gain.rolling(window = period, min_periods = period).mean()
+        avg_loss = loss.rolling(window = period, min_periods = period).mean()
         #EMA smoothing
         avg_gain = avg_gain.where(
             avg_gain.isna(),
-            gain.ewm(com = self.period - 1, min_periods = self.period, adjust = False).mean()
+            gain.ewm(com = period - 1, min_periods = period, adjust = False).mean()
         )
         avg_loss = avg_loss.where(
             avg_loss.isna(),
-            loss.ewm(com = self.period - 1, min_periods = self.period, adjust = False).mean()
+            loss.ewm(com = period - 1, min_periods = period, adjust = False).mean()
         )
         rs = avg_gain /avg_loss
         rsi = 100.0 - (100.0 / (1.0 + rs))
@@ -109,18 +109,18 @@ class RSIMeanReversion(TradingStrategy):
         df.loc[df['rsi'] > self.sell_level, 'signal'] = -1
         df['pos'] = df.groupby('Ticker')['signal'].shift(1).fillna(0)
         return df
-    
+
 class TimeSeriesMomentum(TradingStrategy):
     name = "Momentum (ROC)"
     description = "Time-series momentum"
 
-    def __init__(self, lookback: int = 126, threshold: float = 0.0, **kwargs)
+    def __init__(self, lookback: int = 126, threshold: float = 0.0, **kwargs):
         super().__init__(**kwargs)
         self.lookback = lookback
         self.threshold = threshold
 
     def compute_signals(self, df: pd.DataFrame) -> pd.DataFrame:
         df['momentum'] = df/groupby('Ticker')['Close'].pct_change(periods = self.lookback)
-        df['signal'] np.where['momentum'] > self.threshold, 1, 0)
+        df['signal'] = np.where(['momentum'] > self.threshold, 1, 0)
         df['pos'] = df.groupby('Ticker')['signal'].shift(1).fillna(0)
         return df
