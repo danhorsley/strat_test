@@ -90,16 +90,16 @@ class RSIMeanReversion(TradingStrategy):
         delta = df.groupby('Ticker')['Close'].diff()
         gain = delta.where(delta > 0, 0.0)
         loss = -delta.where(delta< 0, 0.0)
-        avg_gain = gain.rolling(window = period, min_periods = period).mean()
-        avg_loss = loss.rolling(window = period, min_periods = period).mean()
+        avg_gain = gain.rolling(window = self.period, min_periods = self.period).mean()
+        avg_loss = loss.rolling(window = self.period, min_periods = self.period).mean()
         #EMA smoothing
         avg_gain = avg_gain.where(
             avg_gain.isna(),
-            gain.ewm(com = period - 1, min_periods = period, adjust = False).mean()
+            gain.ewm(com = self.period - 1, min_periods = self.period, adjust = False).mean()
         )
         avg_loss = avg_loss.where(
             avg_loss.isna(),
-            loss.ewm(com = period - 1, min_periods = period, adjust = False).mean()
+            loss.ewm(com = self.period - 1, min_periods = self.period, adjust = False).mean()
         )
         rs = avg_gain /avg_loss
         rsi = 100.0 - (100.0 / (1.0 + rs))
@@ -120,7 +120,7 @@ class TimeSeriesMomentum(TradingStrategy):
         self.threshold = threshold
 
     def compute_signals(self, df: pd.DataFrame) -> pd.DataFrame:
-        df['momentum'] = df/groupby('Ticker')['Close'].pct_change(periods = self.lookback)
+        df['momentum'] = df.groupby('Ticker')['Close'].pct_change(periods = self.lookback)
         df['signal'] = np.where(['momentum'] > self.threshold, 1, 0)
         df['pos'] = df.groupby('Ticker')['signal'].shift(1).fillna(0)
         return df
