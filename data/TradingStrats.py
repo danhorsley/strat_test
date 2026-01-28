@@ -109,3 +109,18 @@ class RSIMeanReversion(TradingStrategy):
         df.loc[df['rsi'] > self.sell_level, 'signal'] = -1
         df['pos'] = df.groupby('Ticker')['signal'].shift(1).fillna(0)
         return df
+    
+class TimeSeriesMomentum(TradingStrategy):
+    name = "Momentum (ROC)"
+    description = "Time-series momentum"
+
+    def __init__(self, lookback: int = 126, threshold: float = 0.0, **kwargs)
+        super().__init__(**kwargs)
+        self.lookback = lookback
+        self.threshold = threshold
+
+    def compute_signals(self, df: pd.DataFrame) -> pd.DataFrame:
+        df['momentum'] = df/groupby('Ticker')['Close'].pct_change(periods = self.lookback)
+        df['signal'] np.where['momentum'] > self.threshold, 1, 0)
+        df['pos'] = df.groupby('Ticker')['signal'].shift(1).fillna(0)
+        return df
