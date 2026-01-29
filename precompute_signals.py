@@ -20,21 +20,22 @@ def precompute_signals():
     
     for name, strat in strategies.items():
         strat_df = strat.run(df.copy())
-        keep_cols = ['Date,' 'Ticker', 'Close', 'signal', 'pos', 'strat_rtn', 'strat_cumulative_rtn']
+        keep_cols = ['Date', 'Ticker', 'Close', 'signal', 'pos', 'strat_rtn', 'cumulative_rtn']
         strat_df = strat_df[keep_cols]
         strat_df = strat_df.rename(columns={
             'signal': f'signal_{name}',
             'pos': f'pos_{name}',
             'strat_rtn': f'strat_rtn_{name}',
-            'strat_cumulative_rtn': f'strat_cumulative_rtn_{name}'
+            'cumulative_rtn': f'cumulative_rtn_{name}'
+            # 'strat_cumulative_rtn': f'strat_cumulative_rtn_{name}'
         })
         results_dfs.append(strat_df)
         
         # Merge all strategies on data and ticker
         df_all = results_dfs[0]
-        for other_df in results_dfs[1:]:
+        for other in results_dfs[1:]:
             df_all = df_all.merge(
-                other.drop(columns=['Close', 'returns']),
+                other.drop(columns=['Close']),
                 on = ['Date', 'Ticker'],
                 how = 'outer'
             )
