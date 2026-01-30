@@ -7,6 +7,7 @@ def wrangle_data(selected_stocks: list[str]) -> pd.DataFrame:
         df = pd.read_csv(f"data/{stock}.csv")
         
         # Sort just in case
+        df['Date'] = pd.to_datetime(df['Date'])
         df = df.sort_values('Date')
         
         # Normalize

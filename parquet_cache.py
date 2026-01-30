@@ -1,11 +1,16 @@
 import streamlit as st
 import pandas as pd
+from datetime import datetime
 
 @st.cache_data(ttl=None)
 def load_precomputed():
     return pd.read_parquet("precomputed_signals.parquet")
 
 df_pre = load_precomputed()
+
+
+# ── UI: title ───────────────────────────────────────────────────
+st.write("MAG 7 - strategy backtester")
 
 # ── UI: strategy selection ────────────────────────────────────────────────
 strat_display = st.selectbox(
@@ -27,11 +32,41 @@ strat_suffix_map = {
 }
 suffix = strat_suffix_map[strat_display]
 
-#date filtering
+# ── UI: stock selection ──────────────────────────────────────────────
+
+all_stocks = ["TSLA","MSFT","AAPL","GOOG","AMZN","NVDA","META"]
+with st.container(border=True):
+    selected_stocks = st.multiselect("Stocks", all_stocks, default=all_stocks)
+    portfolio_return = st.toggle("portfolio_return", value=True)
+
+# ── UI: date selection ──────────────────────────────────────────────
+min_date = df_pre['Date'].min().date()
+max_date = df_pre['Date'].max().date()
+
+# Default: full range
+default_start = min_date
+default_end   = max_date
+
+# The widget
+date_range = st.date_input(
+    "Select date range",
+    value=(default_start, default_end),
+    min_value=min_date,
+    max_value=max_date,
+    format="YYYY-MM-DD"  # optional, looks clean
+)
+
+# Handle the output
+if len(date_range) == 2:
+    start_date, end_date = date_range
+    st.write(f"Selected: {start_date} → {end_date}")
+else:
+    st.info("Select both start and end dates")
+
 
 df_filt = df_pre[
-    (df_pre['Date'] >= st.date_input("Start date")) &
-    (df_pre['Date'] <= st.date_input("End date"))
+    (df_pre['Date'] >= start_date) &
+    (df_pre['Date'] <= end_date)
 ].copy()
 
 df_filt['strat_rtn'] = df_filt[f'strat_rtn_{suffix}']
@@ -56,5 +91,16 @@ df_plot = df_filt.merge(
     how='left'
 )
 
+tab1, tab2 = st.tabs(["Chart", "Dataframe"])
+if portfolio_return:
+    tab1.line_chart(df_plot, height=250)
+else:
+    df_filt['pct_change_close'] = df_filt.groupby('Ticker')['Close'].pct_change()
+    df_filt['avg_pct_change'] = df_filt.groupby('Date')['pct_change_close'].transform('mean')
+    df_filt['base_cum_rtn'] = (1 + df_filt['avg_pct_change']).cumprod()
+    tab1.line_chart(df_filt['base_cum_rtn'], height=250)
+
+tab2.dataframe(df_filt, height=250, use_container_width=True)
+
 # Now use df_plot or port_cum for charts, metrics, etc.
-st.line_chart(port_cum)
+# st.line_chart(port_cum)
