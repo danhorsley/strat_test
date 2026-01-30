@@ -120,7 +120,20 @@ if df_filt.empty == False:
 
     tab1, tab2 = st.tabs(["Chart", "Dataframe"])
     if portfolio_return:
-        tab1.line_chart(df_plot.drop_duplicates(subset='Date').set_index('Date')['port_cumulative_rtn'], height=250)
+        # strat return chart
+        tab1.line_chart((df_plot.drop_duplicates(subset='Date').set_index('Date')['port_cumulative_rtn']-1) * 100, height=250)
+        
+        # strat return stats
+        sharpe_ratio = (port_daily.mean() / port_daily.std()) * (252**0.5)
+        sharpe_text = f"Sharpe Ratio: {sharpe_ratio:.2f}"
+        
+        total_ret = (port_cum.iloc[-1] - 1 ) *100
+        total_ret_text = f"{total_ret:+.1f}%"
+        
+        st.markdown(
+        f"**Strategy performance** — Total return: **{total_ret_text}** | **{sharpe_text}**"
+    )
+        
     else:
         df_filt['pct_change_close'] = df_filt.groupby('Ticker')['Close'].pct_change()
         df_filt['avg_pct_change'] = df_filt.groupby('Date')['pct_change_close'].transform('mean')
